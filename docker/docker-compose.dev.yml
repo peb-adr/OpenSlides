@@ -10,8 +10,8 @@ services:
       - OPENSLIDES_DEVELOPMENT=1
     volumes:
       - ../openslides-datastore-service/datastore:/app/datastore
-    ports:
-      - 9010:9010
+    #ports:
+    #  - 9010:9010
 
   datastore-writer:
     image: openslides-datastore-writer-dev
@@ -81,6 +81,7 @@ services:
     env_file: services.env
     environment:
       - OPENSLIDES_DEVELOPMENT=1
+      - MAX_PARALLEL_KEYS=10
     volumes:
       - ../openslides-autoupdate-service/cmd:/root/cmd
       - ../openslides-autoupdate-service/internal:/root/internal
@@ -128,14 +129,19 @@ services:
 
   manage:
     image: openslides-manage-dev
+    ports:
+      - "9008:9008"
     depends_on:
       - auth
       - datastore-writer
     env_file: services.env
     environment:
       - OPENSLIDES_DEVELOPMENT=1
-    ports:
-      - "9008:9008"
+    secrets:
+      - manage_auth_password
+#      - internal_auth_password
+    volumes:
+      - ../openslides-manage-service/pkg:/root/pkg
 
   message-bus:
     image: redis:latest
@@ -185,3 +191,7 @@ services:
       - ../openslides-vote-service/internal:/root/internal
     ports:
       - "9013:9013"
+
+secrets:
+  manage_auth_password:
+    file: ./secrets/manage_auth_password
