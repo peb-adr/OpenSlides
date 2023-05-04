@@ -1,0 +1,40 @@
+---
+name: Update main branches of all submodules after an update commit on main
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  update-mains:
+    name: 
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
+
+      - name: Prepare environment
+        run: |
+          # Providing ssh-key to actions/checkout will setup the local ssh
+          # config and agent, also the main repo will have the origin remote
+          # set up with ssh URL.
+          # Unfortunately the submodules will not be treated the same way. So
+          # we have to do that manually in order to get push access to them.
+          set -x
+          sed 's/https:\/\//ssh:\/\/git@/g' -i .gitmodules
+          git submodule sync
+
+          git config --global user.name "${{ github.actor }}"
+          #git config --global user.email "${{ github.actor_email }}"
+
+          git remote -v
+          git submodule foreach git remote -v
+
+      - name: Run update-main-branches
+        run: |
+          echo "${{ github.actor }}"
+          bash -x ./dev/scripts/make-update.sh update-main-branches

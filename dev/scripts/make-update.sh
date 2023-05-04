@@ -4,7 +4,7 @@ set -e
 
 ME=$(basename "$0")
 
-BRANCH_NAME=staging
+BRANCH_NAME=
 REMOTE_NAME=
 OPT_PULL=
 OPT_LOCAL_COMMIT=
@@ -37,8 +37,8 @@ check_current_branch() {
 
   git fetch "$REMOTE_NAME" "$BRANCH_NAME"
   if git merge-base --is-ancestor "$BRANCH_NAME" "$REMOTE_NAME/$BRANCH_NAME"; then
-    echo "git pull --ff-only $REMOTE_NAME $BRANCH_NAME"
-    git pull --ff-only "$REMOTE_NAME" $BRANCH_NAME
+    echo "git merge --ff-only $REMOTE_NAME/$BRANCH_NAME"
+    git merge --ff-only "$REMOTE_NAME"/$BRANCH_NAME
   else
     read -rp "$BRANCH_NAME and $REMOTE_NAME/$BRANCH_NAME have diverged. Run \`git reset --hard $REMOTE_NAME/$BRANCH_NAME\` now? [y/N]: "
     case "$REPLY" in
@@ -113,6 +113,9 @@ update_main_branches() {
   #for mod in $(git submodule status | awk '{print $2}'); do
   while read -r target_sha mod x; do
     (
+      #[[ "$mod" == openslides-datastore-service ]] ||
+      #  continue
+
       echo ""
       echo "$mod"
       cd "$mod"
@@ -120,26 +123,11 @@ update_main_branches() {
       set_remote
       git checkout "$BRANCH_NAME"
       git merge --no-ff "$target_sha" --log --message "Update $(date +%Y%m%d)"
-      #git merge --ff-only "$target_sha"
-      #git push "$REMOTE_NAME" "$BRANCH_NAME"
+      [[ -n "$OPT_LOCAL_COMMIT" ]] || {
+        git push "$REMOTE_NAME" "$BRANCH_NAME"
+      }
     )
   done < <(git submodule status)
-
-
-  # REFERENCE from the early make_main_update
-  #for mod in $(git submodule status | awk '{print $2}'); do
-  #  (
-  #    local submodule_target_sha= diff=
-  #    diff="$(git diff "HEAD..$target_sha" -p "$mod")"
-  #    [[ "$(grep -c . <<< "$diff")" -gt 0 ]] ||
-  #      exit 0 # exit the subshell, acting like 'continue'
-  #    submodule_target_sha="$(awk '$1 ~ "^+Subproject" { print $3 }' <<< "$diff")"
-  #    echo "$mod: $submodule_target_sha"
-  #    cd "$mod"
-  #    git merge --no-ff "$submodule_target_sha" --log --message "Update $(date +%Y%m%d)"
-  #  )
-  #done
-
 
   echo ""
   echo "Updated all submodules $BRANCH_NAME branches."
@@ -254,11 +242,12 @@ make_main_update() {
   else
     git reset --hard "$target_sha"
     echo "main was adjusted. Push to desired remote and PR into main repo to bring update live."
+    echo "IMPORTANT: Make sure to create a merge commit without squashing!"
   fi
 }
 
-shortopt='ph'
-longopt='pull,help'
+shortopt='phl'
+longopt='pull,help,local-commit'
 ARGS=$(getopt -o "$shortopt" -l "$longopt" -n "$ME" -- $@)
 # reset $@ to args array sorted and validated by getopt
 eval set -- "$ARGS"
@@ -287,6 +276,7 @@ done
 for arg; do
   case $arg in
     fetch-all-changes)
+      BRANCH_NAME=staging
       fetch_all_changes
       shift 1
       ;;
@@ -296,6 +286,7 @@ for arg; do
       shift 1
       ;;
     staging)
+      BRANCH_NAME=staging
       make_staging_update
       shift 1
       ;;
