@@ -38,5 +38,9 @@ jobs:
 
       - name: Build and push image
         run: |
-          ./dev/docker/build.sh --ask-push --yes -D ghcr.io/openslides/openslides ${{ matrix.service.name }}
-          ./dev/docker/build.sh --ask-push --yes -D ghcr.io/openslides/openslides -t latest ${{ matrix.service.name }}
+          DOCKER_REPO=ghcr.io/${{ github.repository }}
+          # Change all uppercase to lowercase
+          DOCKER_REPO=$(echo $DOCKER_REPO | tr '[A-Z]' '[a-z]')
+
+          ./dev/docker/build.sh --ask-push --yes -D $DOCKER_REPO ${{ matrix.service.name }}
+          ./dev/docker/build.sh --ask-push --yes -D $DOCKER_REPO -t latest ${{ matrix.service.name }}
