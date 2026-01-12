@@ -20,6 +20,7 @@ jobs:
         label: ${{ github.event.pull_request.labels.*.name }}
 
     steps:
+<<<<<<< HEAD
       - name: Skip if not staging or no matching branch
         run: |
           if [ ! "${{ matrix.label }} = 'staging*' ]; then
@@ -31,24 +32,50 @@ jobs:
             exit 1
           fi
 
+=======
+>>>>>>> 3da524917 (Generalize staging/stable related action triggers)
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 2
 
+<<<<<<< HEAD
       - name: Fetch and checkout latest staging branch
+=======
+      - name: Skip if not staging or no matching branch
+        run: |
+          if ! echo "${{ matrix.label }}" | grep -q '^staging' ; then
+            echo 'Not a staging label. Skipping remaining steps for label ${{ matrix.label }} ...'
+            echo "skip_pick=true" >> $GITHUB_ENV  # Set env var
+          fi
+          if ! git ls-remote --heads origin '${{ matrix.label }}/*' | grep -qc . ; then
+            echo 'No matching branch found. Skipping remaining steps for label ${{ matrix.label }} ...'
+            echo "skip_pick=true" >> $GITHUB_ENV  # Set env var
+          fi
+
+      - name: Fetch and checkout latest staging branch
+        if: env.skip_pick != 'true'  # Conditional execution
+>>>>>>> 3da524917 (Generalize staging/stable related action triggers)
         run: |
           branch=$(git ls-remote --heads origin '${{ matrix.label }}/*' | awk 'gsub(".*refs/heads/","")' | sort -V | tail -1)
           git fetch origin $branch
           git checkout $branch
 
       - name: Set git credentials
+<<<<<<< HEAD
+=======
+        if: env.skip_pick != 'true'  # Conditional execution
+>>>>>>> 3da524917 (Generalize staging/stable related action triggers)
         run: |
           git config --global user.name openslides-automation
           git config --global user.email openslides-automation@users.noreply.github.com
 
       - name: Cherry-pick new commit
+<<<<<<< HEAD
+=======
+        if: env.skip_pick != 'true'  # Conditional execution
+>>>>>>> 3da524917 (Generalize staging/stable related action triggers)
         id: cherry-pick
         run: |
           git fetch origin
@@ -60,6 +87,10 @@ jobs:
           }
 
       - name: Generate access token
+<<<<<<< HEAD
+=======
+        if: env.skip_pick != 'true'  # Conditional execution
+>>>>>>> 3da524917 (Generalize staging/stable related action triggers)
         uses: tibdex/github-app-token@v2
         id: generate-token
         with:
@@ -67,6 +98,10 @@ jobs:
           private_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
 
       - name: Create or update PR
+<<<<<<< HEAD
+=======
+        if: env.skip_pick != 'true'  # Conditional execution
+>>>>>>> 3da524917 (Generalize staging/stable related action triggers)
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ steps.generate-token.outputs.token }}
