@@ -15,8 +15,22 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'staging')
     name: Create PR against staging branch
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        label: ${{ github.event.pull_request.labels.*.name }}
 
     steps:
+      - name: Skip if not staging or no matching branch
+        run: |
+          if [ ! "${{ matrix.label }}" = 'staging*' ]; then
+            echo 'Not a staging label. Aborting ...'
+            exit 1
+          fi
+          if [ ! git ls-remote --heads origin '${{ matrix.label }}/*' | grep -qc . ]; then
+            echo 'No matching branch found. Aborting  ...'
+            exit 1
+          fi
+
       - name: Checkout main
         uses: actions/checkout@v4
         with:
@@ -25,7 +39,7 @@ jobs:
 
       - name: Fetch and checkout latest staging branch
         run: |
-          branch=$(git ls-remote --heads origin 'staging/*' | awk 'gsub(".*refs/heads/","")' | sort -V | tail -1)
+          branch=$(git ls-remote --heads origin '${{ matrix.label }}/*' | awk 'gsub(".*refs/heads/","")' | sort -V | tail -1)
           git fetch origin $branch
           git checkout $branch
 
